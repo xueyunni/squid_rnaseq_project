@@ -70,11 +70,13 @@ R version and package versions are recorded in renv.lock
  - ggplot2
  - tidyverse
  
- ## Author
+## Author
  
- Max Ni 
- Biology Master's student 
- Case Western Reserve University
+Max Ni 
+
+Biology Master's student 
+
+Case Western Reserve University
 
 
 
