@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+
+# R / RStudio
+.Rhistory
+.RData
+.Rproj.user/
+
+# renv (keep renv.lock tracked; ignore installed packages)
+renv/library/
+renv/staging/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Large bioinformatics data & outputs (do not commit)
+data/
+results/
+tmp/
+cache/
+
+# Common bioinfo file types (avoid accidental commits)
+*.fastq
+*.fastq.gz
+*.fq.gz
+*.bam
+*.sam
+*.cram
+*.bai
+*.fai
+*.gtf
+*.gff
+*.bed
+*.vcf
+*.tbi
