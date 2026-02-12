@@ -3,7 +3,7 @@
 # Project: Statocyst vs Gill RNA-seq (DESeq2)
 # Purpose: GSEA (GO Biological Process) using ranked DESeq2 statistics
 # Author: Max Ni
-# Date: 2026-02
+# Date: 2026-01
 # ==============================================================================
 
 # ---- reproducibility ----
@@ -130,3 +130,10 @@ if (nrow(gsea_tbl) > 0) {
 }
 
 message("Done.")
+
+
+# --- Save session info----
+writeLines(capture.output(sessionInfo()), file.path("results/session/", "session_info_GSEA.txt"))
+message("Done. Outputs in: ", normalizePath("results/session"))
+
+

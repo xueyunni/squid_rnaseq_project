@@ -6,7 +6,7 @@
 # ---- renv bootstrap ----
 if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
 
-# Initialize only if not already initialized
+# Initialize 
 if (!file.exists("renv.lock")) {
   renv::init(bare = TRUE)  # bare avoids installing a bunch of suggested packages
 } else {

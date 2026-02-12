@@ -5,10 +5,10 @@
 # ==============================================================================
 
 # -----Reproducibility-------
-set.seed(42) # Fixes randomness in PCA/plotting
+set.seed(42) 
 options(stringsAsFactors = FALSE)
 
-# Record environment info (nice for GitHub)
+# Record environment info
 message("R version: ", R.version.string)
 
 # ---- libraries ----
