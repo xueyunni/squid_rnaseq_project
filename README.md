@@ -16,20 +16,20 @@ This repository is designed to be:
 Repository structure 
 
 squid_rnaseq_project/
-├── README.md             
-├── squid_bulk.Rproj      
-├── sample_sheet.r         # Sample metadata
-├── scripts/            
-│   ├── 00_setup_packages.R
-│   ├── 01_deseq2_analysis.R
-│   ├── 02_enrichment_GO.R
-│   ├── 03_GSEA_GO.R
-│   └── preprocessing
-├── docs/                  
-├── renv/                  # renv bootstrap files
-├── renv.lock              # Reproducible R environment lockfile
-├── data/                  
-└── results/    
+README.md             
+squid_bulk.Rproj      
+sample_sheet.r         # Sample metadata
+scripts/            
+  00_setup_packages.R
+  01_deseq2_analysis.R
+  02_enrichment_GO.R
+  03_GSEA_GO.R
+  preprocessing
+docs/                  
+renv/                  # renv bootstrap files
+renv.lock              # Reproducible R environment lockfile
+data/                  
+results/    
            
 -------------------------------------------------------------------------------
 Data and Results
