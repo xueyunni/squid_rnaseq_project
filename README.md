@@ -28,7 +28,7 @@ squid_rnaseq_project/
  |--02_enrichment_GO
  |--03_GSEA_GO.R
  |--preprocessing
-|--squid_bulk.Rporj
+|--squid_bulk.Rproj
                
 ```
 
