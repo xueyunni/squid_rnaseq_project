@@ -114,7 +114,6 @@ pdf("results/plots/MA_plot.pdf", width = 7, height = 6)
 
 plotMA(res,
        cex = 0.6, # Point size
-       main = "MA plot",
        xlab = "Mean of Normalized Counts",
        ylab = "Log2 Fold Change",
        alpha = 0.05)
@@ -144,20 +143,82 @@ dds <- DESeq(dds)
 res <- results(dds) 
 
 # Check the results summary
+nrow(res) # [1] 24967
+
+sum(rowSums(counts(dds)) > 0) # [1] 21551
+
+head(res)
+# log2 fold change (MLE): condition Statocyst vs Gill 
+# Wald test p-value: condition Statocyst vs Gill 
+# DataFrame with 6 rows and 6 columns
+# baseMean log2FoldChange     lfcSE      stat      pvalue        padj
+#                      <numeric>      <numeric> <numeric> <numeric>   <numeric>   <numeric>
+# DACH1                9956.5135       2.407880  0.296134   8.13105 4.25580e-16 4.18662e-15
+# Dpe01:318126-355198_  217.5543       4.104209  0.506481   8.10339 5.34487e-16 5.22642e-15
+# TMEM33               1777.1901      -0.921699  0.235770  -3.90931 9.25582e-05 3.19281e-04
+# AASDHPPT               51.7768      -0.752188  0.568380  -1.32339 1.85706e-01 2.87707e-01
+# TAF1                 1999.6062      -0.470832  0.214469  -2.19534 2.81391e-02 5.82303e-02
+# NA_20                 367.2011      -2.726568  0.434860  -6.26999 3.61065e-10 2.30620e-09
+
 summary(res)
+# out of 21551 with nonzero total read count
+# adjusted p-value < 0.1
+# LFC > 0 (up)       : 5401, 25%
+# LFC < 0 (down)     : 5714, 27%
+# outliers [1]       : 0, 0%
+# low counts [2]     : 371, 1.7%
+# (mean count < 1)
+
+sum(res$padj < 0.001, na.rm = TRUE) # [1] 6681
 
 # confirm the contrast
 resultsNames(dds)
+# [1] "Intercept"                   "condition_Statocyst_vs_Gill"
+
+# gene-level dispersion
+dispersions(dds)
+
+# dispersion plot
+pdf("results/plots/dispersion_plot.pdf", width = 6, height = 5)
+plotDispEsts(dds)
+dev.off()
+# gene-wise estimates
+# fitted dispersion trend
+
+# compare sig and non-sig genes
+res["PKD2", ]
+# baseMean log2FoldChange     lfcSE      stat    pvalue      padj
+# <numeric>      <numeric> <numeric> <numeric> <numeric> <numeric>
+# PKD2    776650        8.85902  0.223683   39.6052         0         0
+
+res["PKD1L2", ]
+#            baseMean log2FoldChange. lfcSE      stat    pvalue      padj
+#            <numeric> <numeric>     <numeric> <numeric> <numeric> <numeric>
+#  PKD1L2   1040152   11.2468           0.259298   43.3741         0         0
+
+res["ZBED4", ]
+# baseMean log2FoldChange     lfcSE      stat    pvalue      padj
+# <numeric>      <numeric> <numeric> <numeric> <numeric> <numeric>
+#  ZBED4   4.43028        5.93409   3.36465   1.76365 0.0777902  0.139995
+
+head(rownames(dds))
+mcols(dds)
+
+
+dds["PKD2", ]
+mcols(dds)["PKD2", "dispersion"]
+mcols(dds)["PKD1L2", "dispersion"]
+mcols(dds)["ZBED4", "dispersion"]
+
 
 # Replot MA 
 pdf("results/plots/MA_plot.pdf", width = 7, height = 6)
 
 plotMA(res,
        cex = 0.6, # Point size
-       main = "MA plot",
        xlab = "Mean of Normalized Counts",
        ylab = "Log2 Fold Change",
-       alpha = 0.05)
+       alpha = 0.001) # padj < 0.001
 
 dev.off()
 
@@ -178,20 +239,18 @@ head(assay(vsd))
 # PCA to confirm sample group separation
 pca_plot <- plotPCA(vsd, intgroup = "condition") + 
   geom_point(size = 2) +
-  ggtitle("PCA") +
-  theme_minimal() +
+  theme_classic() +
   theme(
-    plot.title = element_text(size = 12, face = "bold", hjust = 0.5),
-    axis.title = element_text(size = 8),
-    axis.text = element_text(size = 6),
-    legend.text = element_text(size = 8),
-    legend.title = element_text(size = 10)
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.title = element_text(size = 12)
   )
 
-ggsave(filename = "results/plots/PCA_plot.pdf",
+ggsave(filename = "results/plots/PCA_plot_nogridlines.pdf",
        plot = pca_plot,
        width = 7,
-       height = 4
+       height = 5
          )
 
 print("PCA plot saved successfully.")
@@ -221,9 +280,11 @@ rownames(annotation_col) <- colnames(vsd_mat)
 
 # Compute row variances
 row_var <- rowVars(vsd_mat)
+row_var
 
 # Keep rows with variance > 0
 vsd_mat_filtered <- vsd_mat[row_var > 0, ]
+nrow(vsd_mat_filtered) # 21551
 
 # plot heatmap
 pheatmap(
@@ -235,7 +296,6 @@ pheatmap(
   show_rownames = FALSE,
   show_colnames = TRUE,
   fontsize_row = 0.5,
-  main = "Heatmap of All Genes",
   filename = "results/plots/heatmap_all_genes.pdf",
   width = 7,
   height =7,
@@ -248,8 +308,9 @@ print("heatmap for all genes saved successfully.")
 # 4. Differential Expression analysis
 # ==============================================================================
 # Filter significant genes with padj < 0.05 & log2FC > 1
-sig_genes <- res[which(res$padj < 0.05 & abs(res$log2FoldChange) > 1), ]
-sig_genes # 8068 genes 
+sig_genes <- res[which(res$padj < 0.001 & abs(res$log2FoldChange) > 1), ]
+nrow(sig_genes) # 6172 genes
+
 
 # Export sig_genes
 write.csv(as.data.frame(sig_genes), "results/tables/DEG.csv")
@@ -270,8 +331,8 @@ sig_genes_df <- as.data.frame(sig_genes)
 # Highlight upregulated vs downregulated genes in different colors
 sig_genes_df_up_down <- sig_genes_df %>%
   mutate(regulation = case_when(
-    padj < 0.05 & log2FoldChange > 1 ~ "Up",
-    padj < 0.05 & log2FoldChange < -1 ~ "Down",
+    padj < 0.001 & log2FoldChange > 1 ~ "Up",
+    padj < 0.001 & log2FoldChange < -1 ~ "Down",
     TRUE ~ "Not Significant")
   )
 
@@ -279,14 +340,15 @@ head(sig_genes_df_up_down)
 
 # Filter the most significant genes
 # top up-regulated (log2FC > 1) with padj < 0.05
-top_up <- sig_genes_df %>% filter(log2FoldChange > 1, padj < 0.05) %>% arrange(desc(log2FoldChange))
-top_up
+top_up <- sig_genes_df %>% filter(log2FoldChange > 1, padj < 0.001) %>% arrange(desc(log2FoldChange))
+nrow(top_up) # 2841
 
 # save top_up for GO analysis
 write.csv(top_up, "results/tables/sig_gene_up.csv")
 
 # top down-regulated
-top_down <- sig_genes_df %>% filter(log2FoldChange < 1, padj < 0.05) %>% arrange(log2FoldChange)
+top_down <- sig_genes_df %>% filter(log2FoldChange < 1, padj < 0.001) %>% arrange(log2FoldChange)
+nrow(top_down) # 3331
 
 # save top_down for GO analysis
 write.csv(top_down, "results/tables/sig_gene_down.csv")
@@ -307,12 +369,11 @@ top100_sig_genes_volcano_plot <- ggplot(sig_genes_df_up_down, aes(x = log2FoldCh
     aes(label = rownames(top100_sig_genes)),
     size = 1.5,
     max.overlaps = Inf) +
-  theme_minimal() + 
+  theme_classic() + 
   theme(
     plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
   ) +
   labs(
-    title = "Volcano Plot of DEGs",
     x = "Log2 Fold Change",
     y = "-log10 padj",
     color = "Regulation"
@@ -328,7 +389,7 @@ print("Volcano plot for Top 100 sig genes saved successfully.")
 # ------------------------------------------------------------------------------
 # 4.2 EnhancedVolcano plot
 # ------------------------------------------------------------------------------
-# Enhanced volcano plot with top 100 genes labeled by significance (padj < 0.05) & log2FC > 1
+# Enhanced volcano plot with top 100 genes labeled by significance (padj < 0.001) & log2FC > 1
 # Remove NAs first to avoid errors
 res_noNA <- res[!is.na(res$padj) & !is.na(res$log2FoldChange), ]
 
@@ -348,7 +409,7 @@ enhancedvolcano_plot <- EnhancedVolcano(res,
                 y = 'padj',                   # column for adjusted p-value
                 xlab = bquote(~Log[2]~ 'FoldChange'),
                 ylab = bquote(~-Log[10]~ 'padj'),
-                pCutoff = 0.05,               # significance threshold
+                pCutoff = 0.001,               # significance threshold
                 FCcutoff = 1.0,               # log2FC threshold
                 pointSize = 1.0,
                 labSize = 2.0,
@@ -358,7 +419,7 @@ enhancedvolcano_plot <- EnhancedVolcano(res,
                 colAlpha = 0.8,               # transparency
                 legendLabels=c('NS','Log2FC','padj','padj & Log2FC'),
                 legendPosition = 'right',
-                title = 'Differential Expression Volcano',
+                title = NULL ,
                 selectLab = top100_genes, # highlight specific genes
                 # boxedLabels = TRUE,
                 max.overlaps = Inf
@@ -368,8 +429,7 @@ enhancedvolcano_plot <- EnhancedVolcano(res,
     panel.grid = element_blank(),   # remove grid lines
     # panel.border = element_blank(), # optional: remove border
     axis.ticks = element_line(),
-    axis.line = element_line(), # keep axis lines visible
-    plot.title = element_text(hjust = 0.5, face = "bold")   # centers title
+    axis.line = element_line() # keep axis lines visible
   )
 
 ggsave(filename = "results/plots/EnhancedVolcano.pdf",
@@ -378,6 +438,87 @@ ggsave(filename = "results/plots/EnhancedVolcano.pdf",
        height = 10)
 
 print("EnhancedVolcano plot saved successfully.")
+
+# enhanced volcano plot with no labels 
+
+EV_plot <- EnhancedVolcano(
+  res,
+  lab = rep("", nrow(res)), 
+  x = 'log2FoldChange',         # column for fold change
+  y = 'padj',                   # column for adjusted p-value
+  xlab = bquote(~Log[2]~ 'FoldChange'),
+  ylab = bquote(~-Log[10]~ 'padj'),
+  pCutoff = 0.001,               # significance threshold
+  FCcutoff = 1.0,               # log2FC threshold
+  pointSize = 1.0,
+  labSize = 2.0,
+  drawConnectors = FALSE,
+  arrowheads = FALSE,
+  colAlpha = 0.8,               # transparency
+  legendLabels=c('NS','Log2FC','padj','padj & Log2FC'),
+  legendPosition = 'right',
+  title = NULL,
+  max.overlaps = Inf
+) + 
+  theme_minimal() + # use a clean background
+  theme(
+    panel.grid = element_blank(),   # remove grid lines
+    # panel.border = element_blank(), # optional: remove border
+    axis.ticks = element_line(),
+    axis.line = element_line() # keep axis lines visible
+  )
+
+ggsave(filename = "results/plots/EnhancedVolcano_no_label.pdf",
+       plot = EV_plot,
+       width = 7, 
+       height = 10)
+
+
+# remake enhanced plot to label STP genes
+
+# create empty label column
+res$label <- ""
+
+# replace with real gene ids
+res$label[rownames(res) == "PKD1L2"] <- "STP1_1"
+res$label[rownames(res) == "PKD1L2_2"] <- "STP1_2"
+res$label[rownames(res) == "PKD1L2_3"] <- "STP1_3"
+res$label[rownames(res) == "PKD1L2_4"] <- "STP1_4"
+res$label[rownames(res) == "PKD2"] <- "STP2"
+
+# plot
+EV_plot_alias <- EnhancedVolcano(
+  res,
+  lab = res$label,
+  selectLab = c("STP1_1","STP1_2","STP1_3","STP1_4","STP2"),
+  x = 'log2FoldChange',
+  y = 'padj',
+  xlab = bquote(~Log[2]~ 'FoldChange'),
+  ylab = bquote(~-Log[10]~ 'padj'),
+  pCutoff = 0.001,
+  FCcutoff = 1.0,
+  pointSize = 1.0,
+  labSize = 2.0,
+  drawConnectors = TRUE,
+  widthConnectors = 0.1,
+  arrowheads = FALSE,
+  colAlpha = 0.8,
+  legendLabels=c('NS','Log2FC','padj','padj & Log2FC'),
+  legendPosition = 'right',
+  max.overlaps = Inf
+) + 
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.ticks = element_line(),
+    axis.line = element_line()
+  )
+
+# save
+ggsave(filename = "results/plots/EnhancedVolcano_alias.pdf",
+       plot = EV_plot_alias,
+       width = 7, 
+       height = 10)
 
 # ------------------------------------------------------------------------------
 # 4.3 Heatmap for DEGs
@@ -402,7 +543,6 @@ pheatmap(
   show_rownames = FALSE,
   show_colnames = TRUE,
   fontsize_row = 0.5,
-  main = "Heatmap of DEGs",
   filename = "results/plots/heatmap_DEGs.pdf",
   width = 7,
   height = 7,
@@ -430,7 +570,6 @@ pheatmap(
   show_rownames = TRUE,
   show_colnames = TRUE,
   fontsize_row = 1,
-  main = "Heatmap of Top 200 DEGs",
   filename = "results/plots/heatmap_DEGs_top200.pdf",
   width = 7,
   height = 7,
@@ -458,7 +597,6 @@ pheatmap(
   show_rownames = TRUE,
   show_colnames = TRUE,
   fontsize_row = 2,
-  main = "Heatmap of Top 100 DEGs",
   filename = "results/plots/heatmap_DEGs_top100.pdf",
   width = 7,
   height =7,

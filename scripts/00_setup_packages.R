@@ -15,6 +15,7 @@ if (!file.exists("renv.lock")) {
 
 # ---- repos: keep Bioconductor + CRAN consistent ----
 if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+BiocManager::install(version = BiocManager::version(), ask = FALSE)
 options(repos = BiocManager::repositories())
 
 # ---- packages ----
@@ -46,5 +47,7 @@ renv::install(c(bioc_pkgs, cran_pkgs))
 
 # Snapshot lockfile so others can restore exact versions
 renv::snapshot(prompt = FALSE)
+
+writeLines(capture.output(sessionInfo()), "session_info.txt")
 
 message("✅ Setup complete. Restart R, then run your analysis script.")
