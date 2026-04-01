@@ -4,6 +4,7 @@
 # R / RStudio
 .Rhistory
 .RData
+.RDataTmp
 .Rproj.user/
 
 # renv (keep renv.lock tracked; ignore installed packages)
